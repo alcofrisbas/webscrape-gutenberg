@@ -11,6 +11,10 @@ requests.packages.urllib3.util.ssl_.DEFAULT_CIPHERS += ':RC4-SHA'
 BASE_URL = "http://www.gutenberg.org/files/[a]/[b].txt"
 
 def create_db(fname):
+    """
+    Makes an sqlite3 database given the filename
+    if the file exists, it drops table books
+    """
     conn = sqlite3.connect(fname)
     c = conn.cursor()
     c.execute("drop table if exists books")
@@ -21,20 +25,30 @@ def create_db(fname):
     return conn, c
 
 def connect_db(fname):
+    """
+    opens a connection to a database
+    """
     conn = sqlite3.connect(fname)
     c = conn.cursor()
     return conn, c
 
 def info_to_d(h_i):
+    """
+    parses the information header
+    """
     d = {}
     for i in h_i:
         i = re.sub(r'[^\w:/.-]', ' ', i)
         #print(type(i))
         d[i.split(":")[0]] = ":".join(i.split(":")[1:]).strip()
-    print(d["url"])
+    #print(d["url"])
     return d
 
 def get_info(n):
+    """
+    retrieves info from a book number in
+    the gutenberg filesystem
+    """
     try:
         url = BASE_URL.replace("[a]", str(n))
         url = url.replace("[b]", str(n))
@@ -52,7 +66,7 @@ def get_info(n):
         url = url.replace("[b]", str(n)+"-0")
         #print(url)
         with urllib.request.urlopen(url) as r:
-            text = r.read().decode("utf-8")
+            text = r.read(2000).decode("utf-8")
         header_info = [i.strip() for i in text.split("***")[0].split("\n") if ":" in i]
         header_info.append("url:{}".format(url))
         #print(header_info)
@@ -62,6 +76,11 @@ def get_info(n):
     return {}
 
 def get_full_text(url,fname, dest_dir):
+    """
+    returns the full text given a url,
+    parsing away *some* of the unwanted data
+    # TODO: better data parsing
+    """
     if not os.path.exists(dest_dir):
         os.mkdir(dest_dir)
     with urllib.request.urlopen(url) as r:
@@ -79,6 +98,10 @@ def get_full_text(url,fname, dest_dir):
             w.write(text)
 
 def add_to_table(d,c):
+    """
+    given a cursor and a dictionary of features,
+    adds a record to books
+    """
     if d:
         query = "INSERT INTO books VALUES('{}', '{}', '{}', '{}')".format(d.get("Title", "").lower(),
                         d.get("Author", "").lower(),
@@ -88,15 +111,23 @@ def add_to_table(d,c):
         #query.decode("utf-8")
         #print(query)
         c.execute(str(query))
-    else:
-        print("asdf wtf")
+    #else:
+        #print("asdf wtf")
+        # FAIL SILENTLY!
+
 
 def query(c, col, row):
+    """
+    queries the db
+    """
     q = "select * from books where {} is '{}'".format(col, row)
     c.execute(q)
     return c.fetchall()
 
 if __name__ == '__main__':
+    """
+    CLI stuff... maybe streamline this...
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument("fname", action="store", help="specify database file")
     parser.add_argument('--makedb', action="store_true", default=False,
@@ -129,6 +160,9 @@ if __name__ == '__main__':
             conn, c = create_db(args.fname)
         if args.scan_range:
             for i in range(int(args.scan_range[0]), int(args.scan_range[1])):
+                if i%250 == 0 and i != 0:
+                    print("{} records processed".format(str(i)))
+                    conn.commit()
                 d = get_info(i)
                 add_to_table(d, c)
             conn.commit()
@@ -138,5 +172,7 @@ if __name__ == '__main__':
         row = args.query[1]
         lst = query(c, col, row)
         if input(("{} records found. Save? ".format(str(len(lst))))) == "y":
+            if not args.output_dir:
+                args.output_dir = "saves"
             for i in lst:
-                get_full_text(i[3], "{}_{}.txt".format(i[1], i[0]), "saves")
+                get_full_text(i[3], "{}_{}.txt".format(i[1], i[0]), args.output_dir)

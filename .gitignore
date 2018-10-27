@@ -112,3 +112,4 @@ saves/*
 
 # db files:
 *.db
+*.db-journal
