@@ -5,14 +5,10 @@ import requests
 import argparse
 import random
 import re
-# import nltk
+
 requests.packages.urllib3.util.ssl_.DEFAULT_CIPHERS += ':RC4-SHA'
 
 BASE_URL = "http://www.gutenberg.org/files/[a]/[b].txt"
-
-# t = ("jane austen",)
-# c.execute("select * from books where author=?", t)
-# print(c.fetchall())
 
 def create_db(fname):
     conn = sqlite3.connect(fname)
@@ -76,7 +72,7 @@ def get_full_text(url,fname, dest_dir):
     text = text.split("***END")[0]
     text = text.split("*** END")[0]
     # chapter headers...
-    text = re.sub("CHAPTER ([IXLV]*|\d+)", "", text)
+    text = re.sub("CHAPTER ([IXLV]+|[\d]+)", "", text,flags=re.IGNORECASE)
     text = re.sub("[*]", "", text)
     if len(text) > 10000:
         with open(dest_dir+"/"+fname,'w') as w:
@@ -114,7 +110,7 @@ if __name__ == '__main__':
     parser.add_argument('--test', action="store_true", default=False)
     parser.add_argument('--range', '-r', action="store", nargs=2, dest="scan_range")
     args = parser.parse_args()
-    # print(args)
+
     if args.test:
             conn, c = create_db("test.db")
             for i in range(20):
