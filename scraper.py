@@ -80,6 +80,8 @@ def get_full_text(url,fname, dest_dir):
     returns the full text given a url,
     parsing away *some* of the unwanted data
     # TODO: better data parsing
+
+    returns: None
     """
     if not os.path.exists(dest_dir):
         os.mkdir(dest_dir)
@@ -101,6 +103,7 @@ def add_to_table(d,c):
     """
     given a cursor and a dictionary of features,
     adds a record to books
+    returns: None
     """
     if d:
         query = "INSERT INTO books VALUES('{}', '{}', '{}', '{}')".format(d.get("Title", "").lower(),
@@ -119,12 +122,20 @@ def add_to_table(d,c):
 def query(c, col, row):
     """
     queries the db
+    returns: List of records
     """
     q = ""
     c.execute("select * from books where "+col+" like '%{}%'".format(row))
     return c.fetchall()
 
 def retrieve_records(lst, output_dir):
+    """
+    given a list of queries and an output_dir,
+    call get_full_text and retrieve...
+
+    simply a wrapper due to code repetition.
+    returns: None
+    """
     if input(("{} records found. Save? ".format(str(len(lst))))) == "y":
         if not args.output_dir:
             args.output_dir = "saves"
@@ -143,14 +154,16 @@ if __name__ == '__main__':
                             help="not yet implemented")
     parser.add_argument('-q', action="store", dest="query", nargs=2,
                             help="An sql query to return records and download documents")
-    parser.add_argument('--output_dir','-o', action="store", dest="output_dir",
+    parser.add_argument('--output-dir','-o', action="store", dest="output_dir",
                             help="destination to store documents")
     parser.add_argument('--test', action="store_true", default=False)
     parser.add_argument('--range', '-r', action="store", nargs=2, dest="scan_range")
     parser.add_argument('--count', action="store_true", dest="count")
     parser.add_argument('--random-count', action="store")
     args = parser.parse_args()
-
+    """
+    test only: delete after alpha
+    """
     if args.test:
             conn, c = create_db("test.db")
             for i in range(20):
@@ -158,7 +171,9 @@ if __name__ == '__main__':
                 add_to_table(d,c)
             conn.commit()
             print(query(c, "select * from books where lang is 'english'"))
-
+    """
+    make database
+    """
     elif args.makedb:
         if os.path.exists(args.fname):
             if input("File {} exists, overwrite(y/n)? ".format(args.fname)) == "y":
@@ -175,16 +190,25 @@ if __name__ == '__main__':
                 d = get_info(i)
                 add_to_table(d, c)
             conn.commit()
+    """
+    query database by col and row
+    """
     elif args.query:
         conn, c = connect_db(args.fname)
         col = args.query[0]
         row = args.query[1]
         lst = query(c, col, row)
         retrieve_records(lst, args.output_dir)
+    """
+    number of books
+    """
     elif args.count:
         conn, c = connect_db(args.fname)
         num = c.execute("SELECT COUNT(*) FROM books").fetchall()[0][0]
         print("There are {} records in table: books".format(str(num)))
+    """
+    return n random books
+    """
     elif args.random_count:
         conn, c = connect_db(args.fname)
         lst = c.execute("SELECT * FROM books ORDER BY RANDOM() LIMIT {}".format(int(args.random_count))).fetchall()
