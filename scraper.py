@@ -120,9 +120,16 @@ def query(c, col, row):
     """
     queries the db
     """
-    q = "select * from books where {} is '{}'".format(col, row)
-    c.execute(q)
+    q = ""
+    c.execute("select * from books where "+col+" like '%{}%'".format(row))
     return c.fetchall()
+
+def retrieve_records(lst, output_dir):
+    if input(("{} records found. Save? ".format(str(len(lst))))) == "y":
+        if not args.output_dir:
+            args.output_dir = "saves"
+        for i in lst:
+            get_full_text(i[3], "{}_{}.txt".format(i[1], i[0]), args.output_dir)
 
 if __name__ == '__main__':
     """
@@ -140,6 +147,8 @@ if __name__ == '__main__':
                             help="destination to store documents")
     parser.add_argument('--test', action="store_true", default=False)
     parser.add_argument('--range', '-r', action="store", nargs=2, dest="scan_range")
+    parser.add_argument('--count', action="store_true", dest="count")
+    parser.add_argument('--random-count', action="store")
     args = parser.parse_args()
 
     if args.test:
@@ -171,8 +180,12 @@ if __name__ == '__main__':
         col = args.query[0]
         row = args.query[1]
         lst = query(c, col, row)
-        if input(("{} records found. Save? ".format(str(len(lst))))) == "y":
-            if not args.output_dir:
-                args.output_dir = "saves"
-            for i in lst:
-                get_full_text(i[3], "{}_{}.txt".format(i[1], i[0]), args.output_dir)
+        retrieve_records(lst, args.output_dir)
+    elif args.count:
+        conn, c = connect_db(args.fname)
+        num = c.execute("SELECT COUNT(*) FROM books").fetchall()[0][0]
+        print("There are {} records in table: books".format(str(num)))
+    elif args.random_count:
+        conn, c = connect_db(args.fname)
+        lst = c.execute("SELECT * FROM books ORDER BY RANDOM() LIMIT {}".format(int(args.random_count))).fetchall()
+        retrieve_records(lst, args.output_dir)
