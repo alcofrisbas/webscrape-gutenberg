@@ -161,9 +161,6 @@ if __name__ == '__main__':
     parser.add_argument('--count', action="store_true", dest="count")
     parser.add_argument('--random-count', action="store")
     args = parser.parse_args()
-    """
-    test only: delete after alpha
-    """
     if args.test:
             conn, c = create_db("test.db")
             for i in range(20):
@@ -171,9 +168,6 @@ if __name__ == '__main__':
                 add_to_table(d,c)
             conn.commit()
             print(query(c, "select * from books where lang is 'english'"))
-    """
-    make database
-    """
     elif args.makedb:
         if os.path.exists(args.fname):
             if input("File {} exists, overwrite(y/n)? ".format(args.fname)) == "y":
@@ -190,25 +184,16 @@ if __name__ == '__main__':
                 d = get_info(i)
                 add_to_table(d, c)
             conn.commit()
-    """
-    query database by col and row
-    """
     elif args.query:
         conn, c = connect_db(args.fname)
         col = args.query[0]
         row = args.query[1]
         lst = query(c, col, row)
         retrieve_records(lst, args.output_dir)
-    """
-    number of books
-    """
     elif args.count:
         conn, c = connect_db(args.fname)
         num = c.execute("SELECT COUNT(*) FROM books").fetchall()[0][0]
         print("There are {} records in table: books".format(str(num)))
-    """
-    return n random books
-    """
     elif args.random_count:
         conn, c = connect_db(args.fname)
         lst = c.execute("SELECT * FROM books ORDER BY RANDOM() LIMIT {}".format(int(args.random_count))).fetchall()
