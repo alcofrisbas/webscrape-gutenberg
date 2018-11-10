@@ -83,6 +83,7 @@ def get_full_text(url,fname, dest_dir):
 
     returns: None
     """
+    fname = fname.replace(" ","")
     if not os.path.exists(dest_dir):
         os.mkdir(dest_dir)
     with urllib.request.urlopen(url) as r:
