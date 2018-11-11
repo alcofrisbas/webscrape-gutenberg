@@ -7,6 +7,8 @@ import random
 import re
 import unicodedata
 
+## TODO: output incremental
+
 requests.packages.urllib3.util.ssl_.DEFAULT_CIPHERS += ':RC4-SHA'
 
 BASE_URL = "http://www.gutenberg.org/files/[a]/[b].txt"
@@ -85,14 +87,19 @@ def get_full_text(url,fname, dest_dir):
     returns: None
     """
     fname = fname.replace(" ","_")
+    # shoddy bug fix -- may or may not work
     if not os.path.exists(dest_dir):
         os.mkdir(dest_dir)
     with urllib.request.urlopen(url) as r:
-        text = r.read().decode("utf-8")
+        text = r.read().decode("utf-8",'ignore') #this may pose an issue...
     text = unicodedata.normalize('NFKD',text).encode('ASCII', 'ignore')
-    text = text.decode("utf-8")
+    text = text.decode("utf-8", 'ignore')
+
     # remove licensing header and footer
-    text = text.split("***\r")[1]
+    try:
+        text = text.split("***\r")[1]
+    except IndexError:
+        print("I shall fail loudly")
     text = text.split("End of Project Gutenberg's")[0]
     text = text.split("***END")[0]
     text = text.split("*** END")[0]
@@ -100,7 +107,7 @@ def get_full_text(url,fname, dest_dir):
     text = re.sub("CHAPTER ([IXLV]+|[\d]+)", "", text,flags=re.IGNORECASE)
     text = re.sub("[*]", "", text)
     if len(text) > 10000:
-        with open(dest_dir+"/"+fname,'w') as w:
+        with open(dest_dir+"/"+fname.replace("/",""),'w') as w:
             w.write(text)
 
 def add_to_table(d,c):
@@ -143,7 +150,11 @@ def retrieve_records(lst, output_dir):
     if input(("{} records found. Save? ".format(str(len(lst))))) == "y":
         if not args.output_dir:
             args.output_dir = "saves"
-        for i in lst:
+        if not os.path.exists(args.output_dir):
+            os.mkdir(args.output_dir)
+        for j,i in enumerate(lst):
+            if j % 25 == 0 and j > 0:
+                print("{} records retrieved".format(j))
             get_full_text(i[3], "{}_{}.txt".format(i[1], i[0]), args.output_dir)
 
 if __name__ == '__main__':
