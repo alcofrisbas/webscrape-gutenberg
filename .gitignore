@@ -114,3 +114,5 @@ saves/*
 *.db
 *.db-journal
 .nfs*
+
+._*

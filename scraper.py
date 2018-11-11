@@ -5,6 +5,7 @@ import requests
 import argparse
 import random
 import re
+import unicodedata
 
 requests.packages.urllib3.util.ssl_.DEFAULT_CIPHERS += ':RC4-SHA'
 
@@ -83,11 +84,13 @@ def get_full_text(url,fname, dest_dir):
 
     returns: None
     """
-    fname = fname.replace(" ","")
+    fname = fname.replace(" ","_")
     if not os.path.exists(dest_dir):
         os.mkdir(dest_dir)
     with urllib.request.urlopen(url) as r:
         text = r.read().decode("utf-8")
+    text = unicodedata.normalize('NFKD',text).encode('ASCII', 'ignore')
+    text = text.decode("utf-8")
     # remove licensing header and footer
     text = text.split("***\r")[1]
     text = text.split("End of Project Gutenberg's")[0]
