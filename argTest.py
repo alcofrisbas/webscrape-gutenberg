@@ -4,13 +4,11 @@ import os
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-
+    parser.add_argument("fname")
     subparsers = parser.add_subparsers(help='types of A')
 
     m_parser = subparsers.add_parser("make")
     q_parser = subparsers.add_parser("query")
-
-    m_parser.add_argument("fname")
 
     args = parser.parse_args()
     print(args)
